@@ -4,11 +4,21 @@
     {
         CLI_IO.Clear();
 
-        CLI_IO.RenderText("Hello World!, let's see these Blue_different speeds");
+        string[] speeds = [
+            $"{ValidColors.RedDelimiter}Slow",
+            $"{ValidColors.BlueDelimiter}Normal",
+            $"{ValidColors.GreenDelimiter}Fast"
+        ];
 
-        int selectedOption = CLI_IO.PresentOptionMenu(["Select a speed\nIt'll help us later"],  ["Red_Slow", "Green_Normal", "Blue_Fast"]);
+        int selectedOption = CLI_IO.PresentOptionMenu(
+            ["Select a text speed for your game\nKeep in mind, this text came at you at normal speed"],
+            speeds);
 
         CLI_IO.SetTextSpeed(selectedOption);
-        CLI_IO.RenderText("You selected option " + (selectedOption + 1) + "\nGreat choice!");
+        CLI_IO.RenderText($"You selected {speeds[selectedOption]}\nGreat choice!");
+        CLI_IO.RenderText("Now, let's begin the Yellow_Adventure Yellow_of Yellow_Isolde!");
+
+        Game game = new Game();
+        game.RunExposition();
     }
 }

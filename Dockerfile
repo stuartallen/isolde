@@ -8,7 +8,6 @@ RUN dotnet restore ./src/
 
 # Copy everything else and build
 COPY src/. ./src/
-RUN ls -la ./src/  # Debug: List contents of src directory
 RUN dotnet build ./src/ --configuration Release
 RUN dotnet publish ./src/ --configuration Release --no-build -o /app
 
@@ -16,4 +15,5 @@ RUN dotnet publish ./src/ --configuration Release --no-build -o /app
 FROM mcr.microsoft.com/dotnet/runtime:9.0
 WORKDIR /app
 COPY --from=build /app .
+COPY --from=build /source/src/text/. ./text/
 ENTRYPOINT ["dotnet", "isolde.dll"]

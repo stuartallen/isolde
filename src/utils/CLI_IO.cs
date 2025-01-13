@@ -7,20 +7,22 @@ public enum TextSpeed
 
 public static class CLI_IO
 {
-    private static readonly int[] TextSpeeds = { 500, 100, 25 };
+    private static readonly int[] TextSpeeds = { 250, 100, 25 };
     private static readonly int CheckForTabEveryMs = 25;
     private static readonly Dictionary<string, ConsoleColor> TextColors = new()
     {
-        { "Red", ConsoleColor.Red },
-        { "Blue", ConsoleColor.Blue },
-        { "Green", ConsoleColor.Green },
-        { "Yellow", ConsoleColor.Yellow },
-        { "White", ConsoleColor.White },
-        { "Cyan", ConsoleColor.Cyan },
-        { "Magenta", ConsoleColor.Magenta },
+        { ValidColors.Red, ConsoleColor.Red },
+        { ValidColors.Blue, ConsoleColor.Blue },
+        { ValidColors.Green, ConsoleColor.Green },
+        { ValidColors.Yellow, ConsoleColor.Yellow },
+        { ValidColors.White, ConsoleColor.White },
+        { ValidColors.Cyan, ConsoleColor.Cyan },
+        { ValidColors.Magenta, ConsoleColor.Magenta },
+        { ValidColors.DarkYellow, ConsoleColor.DarkYellow },
+        { ValidColors.Gray, ConsoleColor.Gray },
     };
 
-    private static int currentTextSpeedIndex = 0;
+    private static int currentTextSpeedIndex = 1;
 
     private static ConsoleColor defaultColor = ConsoleColor.White;
 
@@ -44,6 +46,9 @@ public static class CLI_IO
 
         // Ready the console
         Clear();
+
+        // Normalize line endings to Environment.NewLine
+        prompt = prompt.Replace("\r\n", "\n").Replace("\r", "\n");
 
         int speedDelay = TextSpeeds[currentTextSpeedIndex];
         bool tabHasBeenPressed = false;
@@ -203,40 +208,32 @@ public static class CLI_IO
         for (int i = 0; i < options.Length; i++)
         {
             ArgumentNullException.ThrowIfNull(options[i]);
-            string word = string.Empty;
-            string selectedOptionPrefix = i == selectedOption ? ">" : string.Empty;
-            ConsoleColor color = defaultColor;
-            if (options[i].Contains('_'))
-            {
-                // Split the option into a color and text, and insert at the beginning
-                // This way the entire option is rendered as the option color
 
-                // Also render a > if the option is selected
-                string[] parts = options[i].Split('_', 2);
-                if (TextColors.TryGetValue(parts[0], out ConsoleColor textColor))
+            string[] words = options[i].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            int wordLength = 0;
+            foreach (string word in words)
+            {
+                if (i == selectedOption && wordLength == 0)
                 {
-                    color = textColor;
+                    lastLineLength += 1;
+                    RenderTextWithColor(">", defaultColor);
                 }
 
-                word += $"{selectedOptionPrefix}({i + 1}) {parts[1]} ";
-            }
-            else
-            {
-                word += $"{selectedOptionPrefix}({i + 1}) {options[i]} ";
+                wordLength += RenderWord(word);
             }
 
-            // Plus 1 accounts for space from RenderWord
-            lastLineLength += word.Length + 1;
-            RenderTextWithColor(word, color);
+            lastLineLength += wordLength;
         }
 
         return lastLineLength;
     }
 
     // Render a single word
-    private static void RenderWord(string word)
+    private static int RenderWord(string word)
     {
+        int length;
         ArgumentNullException.ThrowIfNull(word);
+
         // If the word fits the format "Color_Text"
         if (word.Contains('_') && !word.EndsWith('_'))
         {
@@ -252,14 +249,15 @@ public static class CLI_IO
             {
                 RenderTextWithColor($"{text} ", defaultColor);
             }
+            length = text.Length + 1;
         }
         else
         {
             RenderTextWithColor($"{word} ", defaultColor);
+            length = word.Length + 1;
         }
 
-        // Reset the color
-        Console.ForegroundColor = defaultColor;
+        return length;
     }
 
     private static void RenderTextWithColor(string text, ConsoleColor color)
