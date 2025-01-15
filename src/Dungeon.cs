@@ -180,16 +180,40 @@ public class Dungeon
 
         var disabledMovesIdx = validMoves.Where(m => m.Status == "disabled").Select(m => validMoves.IndexOf(m)).ToArray();
 
-        // Present only valid movement options
-        string[] options = validMoves.Select(m => m.Option).ToArray();
-        int choice = CLI_IO.PresentOptionMenu("Which direction would you like to move?", options, false, disabledMovesIdx, this.lastChosenDirection);
+        // This was such a silly idea, why did I do the menu this way before lol
+        // // Present only valid movement options
+        // string[] options = validMoves.Select(m => m.Option).ToArray();
+        // int choice = CLI_IO.PresentOptionMenu("Which direction would you like to move?", options, false, disabledMovesIdx, this.lastChosenDirection);
 
         // Update player position based on choice
-        var (dx, dy) = validMoves[choice].Direction;
+        // var (dx, dy) = validMoves[choice].Direction;
 
-        this.lastChosenDirection = choice;
+        // // this.lastChosenDirection = choice;
 
-        player.SetPosition(x + dx, y + dy);
+        // player.SetPosition(x + dx, y + dy);
+
+        // Wait for valid key press
+        while (true)
+        {
+            var key = Console.ReadKey(true).Key;
+            var direction = key switch
+            {
+                ConsoleKey.UpArrow => (0, -1),
+                ConsoleKey.RightArrow => (1, 0),
+                ConsoleKey.DownArrow => (0, 1),
+                ConsoleKey.LeftArrow => (-1, 0),
+                _ => (0, 0),
+            };
+
+            // Check if move is valid
+            int newX = x + direction.Item1;
+            int newY = y + direction.Item2;
+            if (IsInBounds(newX, newY) && !this.rooms[newX, newY].IsWall)
+            {
+                player.SetPosition(newX, newY);
+                break;
+            }
+        }
     }
 
     private List<(string Option, (int X, int Y) Direction, string Status)> GetValidMoves(int x, int y)

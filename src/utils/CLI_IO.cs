@@ -63,10 +63,21 @@ public static class CLI_IO
             Console.Write("|\n");
         }
 
+        // Player:
+        Console.WriteLine($"\nPlayer:");
+        Console.WriteLine($"♥: {player.Health}");
+        Console.WriteLine("Inventory:");
+        foreach (var item in player.Inventory)
+        {
+            Console.WriteLine($"\t- {item}");
+        }
+
         // Add key
         Console.WriteLine("\nKey:");
         Console.WriteLine("🦸 - Player    👿 - Monster    💰 - Treasure    🚪 - Opening/Exit");
         Console.WriteLine("██ - Wall      ▒▒ - Undiscovered");
+
+        Console.WriteLine("\nPress arrow keys to move");
     }
 
     // Render one text block
