@@ -1,4 +1,6 @@
-﻿public class Program
+﻿using Isolde;
+
+public class Program
 {
     public static void Main(string[] args)
     {
@@ -17,8 +19,12 @@
         CLI_IO.SetTextSpeed(selectedOption);
         CLI_IO.RenderText($"You selected {speeds[selectedOption]}\nGreat choice!");
         CLI_IO.RenderText("Now, let's begin the Yellow_Adventure Yellow_of Yellow_Isolde!");
+        Game game = new();
 
-        Game game = new Game();
         game.RunExposition();
+        game.RunDungeon();
+        game.RunEnding();
+
+        CLI_IO.Clear();
     }
 }

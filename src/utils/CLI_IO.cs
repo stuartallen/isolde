@@ -1,3 +1,5 @@
+using Isolde;
+
 public enum TextSpeed
 {
     Slow,
@@ -39,13 +41,44 @@ public static class CLI_IO
         Console.ForegroundColor = defaultColor;
     }
 
+    public static void RenderRooms(Room[,] rooms, Player player)
+    {
+        for (int y = 0; y < rooms.GetLength(1); y++)
+        {
+            for (int x = 0; x < rooms.GetLength(0); x++)
+            {
+                var room = rooms[x, y];
+                string symbol = room.IsWall ? "██" :
+                        room.HasMonster ? "👿" :
+                        room.IsOpening ? "🚪" :
+                        room.HasTreasure ? "💰" :
+                        "  ";
+
+                symbol = room.IsDiscovered ? symbol : "▒▒";
+                symbol = player.X == x && player.Y == y ? "🦸" : symbol;
+
+                Console.Write($"|{symbol}");
+            }
+
+            Console.Write("|\n");
+        }
+
+        // Add key
+        Console.WriteLine("\nKey:");
+        Console.WriteLine("🦸 - Player    👿 - Monster    💰 - Treasure    🚪 - Opening/Exit");
+        Console.WriteLine("██ - Wall      ▒▒ - Undiscovered");
+    }
+
     // Render one text block
-    public static void RenderText(string prompt, bool awaitReturn = true)
+    public static void RenderText(string prompt, bool awaitReturn = true, bool clear = true)
     {
         ArgumentNullException.ThrowIfNull(prompt);
 
         // Ready the console
-        Clear();
+        if (clear)
+        {
+            Clear();
+        }
 
         // Normalize line endings to Environment.NewLine
         prompt = prompt.Replace("\r\n", "\n").Replace("\r", "\n");
@@ -115,56 +148,75 @@ public static class CLI_IO
     }
 
     // Render a whole list of text blocks
-    public static void RenderTextList(string[] prompts, bool awaitReturn = true)
+    public static void RenderTextList(string[] prompts, bool awaitReturn = true, bool clear = true)
     {
         ArgumentNullException.ThrowIfNull(prompts);
         foreach (string prompt in prompts)
         {
             ArgumentNullException.ThrowIfNull(prompt);
-            RenderText(prompt, awaitReturn);
+            RenderText(prompt, awaitReturn, clear);
         }
     }
 
     // Render a generic set of option menu, and return the 0-based index of the selected option
-    public static int PresentOptionMenu(string prompt, string[] options)
+    public static int PresentOptionMenu(string prompt, string[] options, bool clear = true, int[]? disabledOptions = null, int lastChosenOption = 0)
     {
         ArgumentNullException.ThrowIfNull(prompt);
         ArgumentNullException.ThrowIfNull(options);
 
-        RenderText(prompt, false);
-        return PresentOptionMenuHelper(options);
+        RenderText(prompt, false, clear);
+        return PresentOptionMenuHelper(options, lastChosenOption, disabledOptions);
     }
 
     // Render a generic set of option menu, and return the 0-based index of the selected option
-    public static int PresentOptionMenu(string[] prompts, string[] options)
+    public static int PresentOptionMenu(string[] prompts, string[] options, bool clear = true, int[]? disabledOptions = null, int lastChosenOption = 0)
     {
         ArgumentNullException.ThrowIfNull(prompts);
         ArgumentNullException.ThrowIfNull(options);
 
-        RenderTextList(prompts, false);
-        return PresentOptionMenuHelper(options);
+        RenderTextList(prompts, false, clear);
+        return PresentOptionMenuHelper(options, lastChosenOption, disabledOptions);
     }
 
-    private static int PresentOptionMenuHelper(string[] options)
+    private static int PresentOptionMenuHelper(string[] options, int lastChosenOption, int[]? disabledOptions = null)
     {
         ArgumentNullException.ThrowIfNull(options);
+        disabledOptions ??= [];
 
-        int selectedOption = 0;
-        int lastLineLength = RenderOptions(options, selectedOption);
+        int selectedOption = lastChosenOption;
+        int lastLineLength = RenderOptions(options, selectedOption, disabledOptions);
 
         while (true)
         {
             if (Console.KeyAvailable)
             {
                 ConsoleKeyInfo keyInfo = Console.ReadKey(true);
-                if (keyInfo.Key == ConsoleKey.LeftArrow)
+
+                // left arrow or shift + tab
+                if (keyInfo.Key == ConsoleKey.LeftArrow || (keyInfo.Key == ConsoleKey.Tab && keyInfo.Modifiers == ConsoleModifiers.Shift))
                 {
                     selectedOption = Math.Max(0, selectedOption - 1);
                 }
-                else if (keyInfo.Key == ConsoleKey.RightArrow)
+
+                // right arrow or tab
+                else if (keyInfo.Key == ConsoleKey.RightArrow || keyInfo.Key == ConsoleKey.Tab)
                 {
                     selectedOption = Math.Min(options.Length - 1, selectedOption + 1);
                 }
+
+                // up arrow (go to first non-disabled option)
+                else if (keyInfo.Key == ConsoleKey.UpArrow)
+                {
+                    selectedOption = Array.FindIndex(options, o => !disabledOptions.Contains(Array.IndexOf(options, o)));
+                }
+
+                // down arrow (go to last non-disabled option)
+                else if (keyInfo.Key == ConsoleKey.DownArrow)
+                {
+                    selectedOption = Array.FindLastIndex(options, o => !disabledOptions.Contains(Array.IndexOf(options, o)));
+                }
+
+                // number keys
                 else if (keyInfo.Key >= ConsoleKey.D1 && keyInfo.Key <= ConsoleKey.D9)
                 {
                     int optionIndex = keyInfo.Key - ConsoleKey.D0;
@@ -173,14 +225,16 @@ public static class CLI_IO
                         selectedOption = optionIndex - 1;
                     }
                 }
-                else if (keyInfo.Key == ConsoleKey.Enter)
+
+                // enter (exit if not disabled)
+                else if (keyInfo.Key == ConsoleKey.Enter && !disabledOptions.Contains(selectedOption))
                 {
                     Console.WriteLine(string.Empty);
                     break;
                 }
 
                 ClearLastLine(lastLineLength);
-                lastLineLength = RenderOptions(options, selectedOption);
+                lastLineLength = RenderOptions(options, selectedOption, disabledOptions);
             }
         }
 
@@ -199,9 +253,10 @@ public static class CLI_IO
         Console.Write(new string('\b', lastLineLength));
     }
 
-    private static int RenderOptions(string[] options, int selectedOption)
+    private static int RenderOptions(string[] options, int selectedOption, int[] disabledOptions)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(disabledOptions);
 
         int lastLineLength = 0;
 
@@ -216,10 +271,34 @@ public static class CLI_IO
                 if (i == selectedOption && wordLength == 0)
                 {
                     lastLineLength += 1;
-                    RenderTextWithColor(">", defaultColor);
+                    if (disabledOptions.Contains(i))
+                    {
+                        RenderTextWithColor("·", ConsoleColor.Blue);
+                    }
+                    else
+                    {
+                        RenderTextWithColor(">", defaultColor);
+                    }
                 }
 
-                wordLength += RenderWord(word);
+                if (disabledOptions.Contains(i))
+                {
+                    // Remove existing color if disabled
+                    if (word.Contains('_'))
+                    {
+                        string[] parts = word.Split('_', 2);
+                        RenderWord($"{ValidColors.BlueDelimiter}{parts[1]}");
+                        wordLength += parts[1].Length + 1;
+                    }
+                    else
+                    {
+                        wordLength += RenderWord($"{ValidColors.BlueDelimiter}{word}");
+                    }
+                }
+                else
+                {
+                    wordLength += RenderWord(word);
+                }
             }
 
             lastLineLength += wordLength;
@@ -249,6 +328,7 @@ public static class CLI_IO
             {
                 RenderTextWithColor($"{text} ", defaultColor);
             }
+
             length = text.Length + 1;
         }
         else
