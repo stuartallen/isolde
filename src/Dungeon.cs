@@ -182,7 +182,7 @@ public class Dungeon
 
         // Present only valid movement options
         string[] options = validMoves.Select(m => m.Option).ToArray();
-        int choice = CLI_IO.PresentOptionMenu("Which direction would you like to move?", options, false, disabledMovesIdx);
+        int choice = CLI_IO.PresentOptionMenu("Which direction would you like to move?", options, false, disabledMovesIdx, this.lastChosenDirection);
 
         // Update player position based on choice
         var (dx, dy) = validMoves[choice].Direction;

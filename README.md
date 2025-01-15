@@ -6,13 +6,23 @@ This is a text-based adventure I wrote to learn C#. There are various improvemen
 
 ## Run with Docker
 
+### Build from source
+
 ```
 docker build -t isolde-adventure .
 docker run -it isolde-adventure
 ```
 
+### Run from Docker Hub
+
+```
+docker pull stuartleeallen/isolde:latest
+docker run -it stuartleeallen/isolde:latest
+```
+
 ## Run with .NET
 
 ```
+cd src
 dotnet run
 ```
